@@ -26,8 +26,11 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "gemma4:e4b"
+    ollama_model: str = "llama3.2:3b"
     embedding_model: str = "bge-m3"
+    # Ollama decharge un modele apres 5 min par defaut ; le recharger coute ~2 s
+    # par question. On les garde residents (cout : ~3,8 Go de RAM pour les deux).
+    ollama_keep_alive: str = "30m"
 
     # Retrieval
     embedding_dim: int = 1024  # checked against bge-m3 via /api/embed

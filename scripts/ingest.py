@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.config import Settings, get_settings
+from app.rag.embeddings import embed_texts
+from app.rag.retrieval import search
 
 PDF_PATH = ROOT / "data" / "raw" / "Ambroise_Arrigoni_CV.pdf"
 OUTPUT_PATH = ROOT / "data" / "processed" / "cv.txt"
@@ -84,15 +86,6 @@ def check_chunks(text: str, sections: dict[str, str], chunks: list[tuple[str, st
         raise ValueError(f"chunks ne couvrent que {covered}/{len(text)} caractères")
 
 
-def embed_texts(client: ollama.Client, settings: Settings, texts: list[str]) -> list[list[float]]:
-    vectors = client.embed(model=settings.embedding_model, input=texts).embeddings
-    if len(vectors) != len(texts):
-        raise ValueError(f"{len(vectors)} vecteurs pour {len(texts)} textes")
-    if len(vectors[0]) != settings.embedding_dim:
-        raise ValueError(f"dimension {len(vectors[0])} au lieu de {settings.embedding_dim}")
-    return [list(v) for v in vectors]
-
-
 def ensure_collection(qdrant: QdrantClient, name: str, dim: int) -> None:
     if qdrant.collection_exists(name):
         return
@@ -124,28 +117,11 @@ def upsert_chunks(
     return len(points)
 
 
-def search(
-    qdrant: QdrantClient,
-    client: ollama.Client,
-    settings: Settings,
-    question: str,
-    k: int = 3,
-) -> list[tuple[float, str]]:
-    vector = embed_texts(client, settings, [question])[0]
-    response = qdrant.query_points(
-        collection_name=settings.qdrant_collection,
-        query=vector,
-        limit=k,
-        with_payload=True,
-    )
-    return [(point.score, (point.payload or {}).get("text", "")) for point in response.points]
-
-
 def run_validation(qdrant: QdrantClient, client: ollama.Client, settings: Settings) -> None:
     for question in QUESTIONS:
         print(f"\n{question}")
-        for score, text in search(qdrant, client, settings, question):
-            print(f"  {score:.3f}  {text[:70]}")
+        for passage in search(qdrant, client, settings, question, k=3):
+            print(f"  {passage.score:.3f}  {passage.text[:70]}")
 
 
 def main() -> None:
