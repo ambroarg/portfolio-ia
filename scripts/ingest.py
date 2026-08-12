@@ -79,7 +79,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         raise ValueError(f"{len(vectors)} vecteurs pour {len(texts)} textes")
     if len(vectors[0]) != EMBEDDING_DIM:
         raise ValueError(f"dimension {len(vectors[0])} au lieu de {EMBEDDING_DIM}")
-    return vectors # type: ignore
+    return vectors  # type: ignore
 
 
 # validation temporaire
@@ -93,7 +93,12 @@ QUESTIONS = [
 ]
 
 
-def search(question: str, vectors: list[list[float]], chunks: list[str], k: int = 3,) -> list[tuple[float, str]]:
+def search(
+    question: str,
+    vectors: list[list[float]],
+    chunks: list[str],
+    k: int = 3,
+) -> list[tuple[float, str]]:
     query_vector = embed_texts([question])[0]
     scored = [
         (sum(a * b for a, b in zip(query_vector, vector)), chunk)
