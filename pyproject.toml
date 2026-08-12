@@ -4,3 +4,13 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]  # erreurs, pyflakes, tri des imports
+
+[tool.pyright]
+# Les scripts ajoutent backend/ au sys.path a l'execution ; Pylance ne le voit
+# pas tout seul et signalerait "app.config could not be resolved".
+extraPaths = ["backend"]
+
+[tool.ruff.lint.per-file-ignores]
+# Les scripts ajoutent backend/ au sys.path avant d'importer app.config,
+# ce qui impose des imports apres du code (E402).
+"scripts/*.py" = ["E402"]

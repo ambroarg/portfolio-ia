@@ -13,12 +13,6 @@ PROCESSED_DIR = DATA_DIR / "processed"
 
 
 class Settings(BaseSettings):
-    """Runtime configuration, read from the environment or the root .env file.
-
-    `qdrant_url` and `qdrant_api_key` have no default on purpose: the app fails
-    fast at startup rather than silently pointing at the wrong vector store.
-    """
-
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
         env_file_encoding="utf-8",
@@ -42,5 +36,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return the cached settings instance, so the .env file is read only once."""
     return Settings()
