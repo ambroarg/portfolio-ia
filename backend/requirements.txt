@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+qdrant-client
+ollama
+pydantic-settings
+ruff
+pytest
