@@ -20,10 +20,10 @@
                  width="38" height="38" decoding="async">
             <span class="avatar-initials" aria-hidden="true">AA</span>
           </span>
-          <span class="identity-text">
+          <div class="identity-text">
             <h1>Ambroise Arrigoni</h1>
             <p class="role">Élève ingénieur &middot; INSA Rouen Normandie</p>
-          </span>
+          </div>
         </div>
 
         <div class="masthead-right">
@@ -36,9 +36,12 @@
             </svg>
             Assistant IA
           </span>
-          <span class="status" id="status" data-state="unknown">
+          <!-- L'etat n'est pas porte par la seule couleur de la pastille : le
+               libelle est visible et annonce par les lecteurs d'ecran
+               (WCAG 1.4.1, "Utilisation de la couleur"). -->
+          <span class="status" id="status" data-state="unknown" aria-live="polite">
             <span class="status-dot" aria-hidden="true"></span>
-            <span class="sr-only" id="status-label">Connexion…</span>
+            <span class="status-label" id="status-label">Connexion…</span>
           </span>
         </div>
 
@@ -58,7 +61,7 @@
           </p>
           <p class="welcome-privacy">
             Aucun cookie, aucun traceur, aucune conversation enregistrée.
-            <button type="button" class="link-button" id="open-privacy">
+            <button type="button" class="link-button">
               En savoir plus
             </button>
           </p>
@@ -104,7 +107,7 @@
 
         <p class="disclaimer">
           Contenu généré par IA &middot; vérifiez les informations importantes
-          <button type="button" class="link-button" id="open-privacy-footer">Confidentialité</button>
+          <button type="button" class="link-button">Confidentialité</button>
         </p>
 
       </div>

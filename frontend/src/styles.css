@@ -11,15 +11,28 @@
   --fill: #e9e9eb;
   --fill-2: #f0f0f2;
   --ink: #1d1d1f;
-  --ink-2: #6e6e73;
-  --ink-3: #8e8e93;
+  /* Un cran plus sombres que les gris systeme d'Apple (#6e6e73 / #8e8e93) :
+     ces derniers sont concus pour du texte large et tombent a 2,9:1 sur nos
+     fonds clairs, sous le seuil AA de 4,5:1 pour du texte courant. */
+  --ink-2: #5f5f64;
+  --ink-3: #6e6e73;
   --line: #d2d2d7;
+  /* Trois bleus, un par exigence de contraste :
+     --accent       aplats et icones, ou le seuil WCAG n'est que de 3:1 ;
+     --accent-text  texte et liens sur fond clair, seuil 4,5:1 (ici 6,2:1) ;
+     --accent-fill  aplat destine a recevoir du texte blanc (ici 6,2:1).
+     Le #007aff d'Apple ne donne que 4,02:1 dans les deux sens : il convient
+     a une icone, jamais a du texte. */
   --accent: #007aff;
+  --accent-text: #005ec4;
+  --accent-fill: #005ec4;
   --accent-ink: #ffffff;
   --accent-tint: rgba(0, 122, 255, 0.1);
+  --success: #34c759;
   --danger: #d70015;
   --danger-tint: rgba(215, 0, 21, 0.09);
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 28px rgba(0, 0, 0, 0.07);
+  --avatar-ring: rgba(0, 0, 0, 0.09);
 
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -27,6 +40,7 @@
 
   --r-bubble: 20px;
   --r-card: 18px;
+  --r-pill: 100px;
   --measure: 60ch;
   --width: 720px;
 }
@@ -43,48 +57,19 @@
     --ink-3: #8e8e93;
     --line: #38383a;
     --accent: #0a84ff;
+    /* Sur fond sombre le bleu vif passe largement AA comme texte (5,8:1),
+       mais pas comme aplat sous du texte blanc (3,6:1) : les deux roles
+       divergent ici, d'ou un --accent-fill assombri. */
+    --accent-text: #0a84ff;
+    --accent-fill: #0a5fc4;
     --accent-ink: #ffffff;
     --accent-tint: rgba(10, 132, 255, 0.16);
+    --success: #30d158;
     --danger: #ff453a;
     --danger-tint: rgba(255, 69, 58, 0.16);
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 8px 28px rgba(0, 0, 0, 0.55);
+    --avatar-ring: rgba(255, 255, 255, 0.14);
   }
-}
-
-:root[data-theme="dark"] {
-  --bg: #000000;
-  --chrome: rgba(28, 28, 30, 0.72);
-  --surface: #1c1c1e;
-  --fill: #2c2c2e;
-  --fill-2: #232325;
-  --ink: #f5f5f7;
-  --ink-2: #aeaeb2;
-  --ink-3: #8e8e93;
-  --line: #38383a;
-  --accent: #0a84ff;
-  --accent-ink: #ffffff;
-  --accent-tint: rgba(10, 132, 255, 0.16);
-  --danger: #ff453a;
-  --danger-tint: rgba(255, 69, 58, 0.16);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 8px 28px rgba(0, 0, 0, 0.55);
-}
-
-:root[data-theme="light"] {
-  --bg: #f5f5f7;
-  --chrome: rgba(255, 255, 255, 0.72);
-  --surface: #ffffff;
-  --fill: #e9e9eb;
-  --fill-2: #f0f0f2;
-  --ink: #1d1d1f;
-  --ink-2: #6e6e73;
-  --ink-3: #8e8e93;
-  --line: #d2d2d7;
-  --accent: #007aff;
-  --accent-ink: #ffffff;
-  --accent-tint: rgba(0, 122, 255, 0.1);
-  --danger: #d70015;
-  --danger-tint: rgba(215, 0, 21, 0.09);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 28px rgba(0, 0, 0, 0.07);
 }
 
 * { box-sizing: border-box; }
@@ -100,7 +85,6 @@ body {
   line-height: 1.55;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
 .sr-only {
@@ -121,10 +105,14 @@ body {
 
 /* ---------------- masthead ---------------- */
 
-.masthead {
+/* Pas de backdrop-filter ici : .app est une grille a trois rangees et seule
+   .thread defile, donc rien ne passe jamais sous ces deux barres. Flouter un
+   aplat rend le meme aplat, au prix d'une couche composee en plus. */
+.masthead, .dock {
   background: var(--chrome);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+.masthead {
   border-bottom: 1px solid var(--line);
   position: relative;
   z-index: 2;
@@ -155,18 +143,16 @@ body {
   overflow: hidden;
   flex: none;
   background: var(--fill);
-  display: grid;
-  place-items: center;
 }
 
 .avatar img {
   width: 100%;
   height: 100%;
-  /* La photo est un portrait 3:4 : "cover" remplit le cercle et rogne les
-     bords. Si le cadrage du visage ne te convient pas, joue sur la seconde
-     valeur d'object-position : 50% 30% remonte le cadrage, 50% 70% le descend. */
+  /* Le fichier est deja un carre de 152 px recadre sur le visage (38 px a 4x) :
+     "cover" ne fait plus rien ici, il ne sert que de garde-fou si la photo est
+     remplacee par un portrait non carre. Pour rejouer le cadrage, c'est la
+     source qu'il faut recouper, pas object-position. */
   object-fit: cover;
-  object-position: 50% 45%;
   display: block;
 }
 
@@ -177,19 +163,11 @@ body {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.09);
+  box-shadow: inset 0 0 0 1px var(--avatar-ring);
   pointer-events: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  .avatar::after { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
-}
-
-:root[data-theme="dark"] .avatar::after {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-}
-
-/* Repli affiche tant que la photo n'est pas deposee (voir app.js). */
+/* Repli affiche si la photo ne se charge pas (voir app.js). */
 .avatar-initials {
   position: absolute;
   inset: 0;
@@ -239,23 +217,33 @@ body {
   gap: 0.32rem;
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-tint);
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   padding: 0.24rem 0.62rem 0.24rem 0.5rem;
   white-space: nowrap;
 }
 
 .ai-badge svg { width: 13px; height: 13px; }
 
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
 .status-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
   background: var(--ink-3);
   display: block;
+  flex: none;
 }
 
-.status[data-state="up"] .status-dot { background: #34c759; }
+.status[data-state="up"] .status-dot { background: var(--success); }
 .status[data-state="down"] .status-dot { background: var(--danger); }
 
 /* ---------------- thread ---------------- */
@@ -299,19 +287,21 @@ body {
   font-size: 0.96rem;
 }
 
-.welcome strong { color: var(--ink); font-weight: 600; }
+.welcome strong, .sheet strong { color: var(--ink); font-weight: 600; }
 
-.welcome-privacy {
-  margin-top: 0.7rem !important;
+/* Selecteur redouble plutot que !important : il faut juste passer devant
+   ".welcome p", qui est plus specifique que ".welcome-privacy" seul. */
+.welcome .welcome-privacy {
+  margin-top: 0.7rem;
   padding-top: 0.7rem;
   border-top: 1px solid var(--line);
-  font-size: 0.86rem !important;
-  color: var(--ink-3) !important;
+  font-size: 0.86rem;
+  color: var(--ink-3);
 }
 
 .link-button {
   font: inherit;
-  color: var(--accent);
+  color: var(--accent-text);
   background: none;
   border: 0;
   padding: 0;
@@ -342,7 +332,7 @@ body {
 }
 
 .msg-user .bubble {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--accent-ink);
   border-bottom-right-radius: 6px;
 }
@@ -416,7 +406,7 @@ body {
   gap: 0.35rem;
   font-size: 0.72rem;
   padding: 0.16rem 0.6rem;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   color: var(--ink-2);
   background: var(--fill-2);
 }
@@ -425,15 +415,14 @@ body {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.68rem;
-  color: var(--ink-3);
+  /* --ink-2 et non --ink-3 : ce texte est pose sur --fill-2, un fond deja
+     clair qui ferait tomber le gris tertiaire sous le seuil AA. */
+  color: var(--ink-2);
 }
 
 /* ---------------- dock ---------------- */
 
 .dock {
-  background: var(--chrome);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-top: 1px solid var(--line);
 }
 
@@ -455,10 +444,10 @@ body {
 .chip {
   font: inherit;
   font-size: 0.84rem;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-tint);
   border: 0;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   padding: 0.34rem 0.85rem;
   cursor: pointer;
   transition: transform 0.16s ease, opacity 0.16s ease;
@@ -527,7 +516,7 @@ body {
   text-align: center;
 }
 
-.disclaimer .link-button { font-size: inherit; margin-left: 0.35rem; }
+.disclaimer .link-button { margin-left: 0.35rem; }
 
 /* ---------------- privacy sheet ---------------- */
 
@@ -589,8 +578,6 @@ body {
   line-height: 1.6;
 }
 
-.sheet strong { color: var(--ink); font-weight: 600; }
-
 .sheet ul {
   margin: 0.3rem 0 0.6rem;
   padding-left: 1.15rem;
@@ -598,11 +585,11 @@ body {
 
 .sheet li { margin-bottom: 0.25rem; }
 
-.sheet-note {
+.sheet .sheet-note {
   background: var(--fill-2);
   border-radius: 10px;
   padding: 0.65rem 0.85rem;
-  font-size: 0.85rem !important;
+  font-size: 0.85rem;
 }
 
 /* ---------------- focus & motion ---------------- */

@@ -36,9 +36,19 @@ function node(tag, className, text) {
 }
 
 /* On ne recolle en bas que si l'utilisateur y etait deja : sinon on lui
-   arracherait sa lecture a chaque token recu. */
+   arracherait sa lecture a chaque token recu.
+   Lire scrollHeight juste apres avoir modifie le DOM force un recalcul de mise
+   en page synchrone. On le repousse dans la frame suivante, ou la mise en page
+   a lieu de toute facon : au plus un recalcul par frame au lieu d'un par token. */
+let scrollQueued = false;
+
 function scrollIfPinned() {
-  if (stickToBottom) el.thread.scrollTop = el.thread.scrollHeight;
+  if (!stickToBottom || scrollQueued) return;
+  scrollQueued = true;
+  requestAnimationFrame(() => {
+    scrollQueued = false;
+    if (stickToBottom) el.thread.scrollTop = el.thread.scrollHeight;
+  });
 }
 
 el.thread.addEventListener("scroll", () => {
@@ -75,13 +85,20 @@ function addBotMessage() {
   msg.appendChild(node("div", "msg-label", "Assistant IA"));
 
   const phase = node("div", "phase");
+  const phaseText = node("span", "phase-text", "Recherche dans le CV…");
   phase.appendChild(node("span", "phase-spinner"));
-  phase.appendChild(node("span", "phase-text", "Recherche dans le CV…"));
+  phase.appendChild(phaseText);
 
   // La bulle reste masquee tant qu'aucun token n'est arrive : une boite vide
   // pendant les trois secondes de recherche fait desordre.
   const bubble = node("div", "bubble is-streaming is-hidden");
   const sources = node("div", "sources is-hidden");
+
+  // Un noeud texte reutilise : "bubble.textContent += t" relirait puis
+  // reecrirait toute la reponse a chaque token (cout quadratique), la ou
+  // appendData n'ajoute que le fragment recu.
+  const textNode = document.createTextNode("");
+  bubble.appendChild(textNode);
 
   msg.append(phase, bubble, sources);
   el.threadInner.appendChild(msg);
@@ -89,14 +106,14 @@ function addBotMessage() {
 
   return {
     setPhase(text) {
-      phase.querySelector(".phase-text").textContent = text;
+      phaseText.textContent = text;
     },
     hidePhase() {
       phase.remove();
     },
     appendToken(text) {
       bubble.classList.remove("is-hidden");
-      bubble.textContent += text;
+      textNode.appendData(text);
       scrollIfPinned();
     },
     setSources(list) {
@@ -114,7 +131,7 @@ function addBotMessage() {
     finish() {
       phase.remove();
       bubble.classList.remove("is-streaming");
-      if (!bubble.textContent) bubble.textContent = "(aucune réponse reçue)";
+      if (!textNode.data) textNode.data = "(aucune réponse reçue)";
       bubble.classList.remove("is-hidden");
       scrollIfPinned();
     },
@@ -122,7 +139,7 @@ function addBotMessage() {
       phase.remove();
       msg.classList.add("is-error");
       bubble.classList.remove("is-streaming", "is-hidden");
-      bubble.textContent = text;
+      textNode.data = text;
       scrollIfPinned();
     },
   };
@@ -272,8 +289,9 @@ el.stop.addEventListener("click", () => controller?.abort());
 
 /* ---------- avatar ---------- */
 
-// Tant que frontend/src/assets/avatar.jpg n'existe pas, on retombe sur les
-// initiales plutot que d'afficher l'icone d'image cassee du navigateur.
+// Si src/assets/avatar.jpeg ne se charge pas, on retombe sur les initiales
+// plutot que d'afficher l'icone d'image cassee du navigateur. Le test
+// "complete" couvre le cas ou l'image a deja echoue avant l'execution du script.
 if (el.avatarImg.complete && el.avatarImg.naturalWidth === 0) {
   el.avatar.dataset.fallback = "true";
 }
@@ -283,13 +301,25 @@ el.avatarImg.addEventListener("error", () => {
 
 /* ---------- confidentialite ---------- */
 
-for (const id of ["open-privacy", "open-privacy-footer"]) {
-  document.getElementById(id)?.addEventListener("click", () => el.privacy.showModal());
+// Tous les liens ".link-button" ouvrent la feuille : pas d'id a inventer pour
+// chaque nouveau point d'entree.
+for (const button of document.querySelectorAll(".link-button")) {
+  button.addEventListener("click", () => el.privacy.showModal());
 }
 
 // Clic sur le fond translucide : fermeture, comme une feuille iOS.
+// Tester "event.target === el.privacy" ne suffit pas : les marges internes du
+// <dialog> appartiennent au dialog lui-meme, donc un clic dedans fermait la
+// feuille alors que le pointeur etait visuellement a l'interieur. On compare
+// donc les coordonnees au rectangle reel.
 el.privacy.addEventListener("click", (event) => {
-  if (event.target === el.privacy) el.privacy.close();
+  const box = el.privacy.getBoundingClientRect();
+  const outside =
+    event.clientX < box.left ||
+    event.clientX > box.right ||
+    event.clientY < box.top ||
+    event.clientY > box.bottom;
+  if (outside) el.privacy.close();
 });
 
 checkHealth();

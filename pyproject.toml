@@ -14,3 +14,7 @@ extraPaths = ["backend"]
 # Les scripts ajoutent backend/ au sys.path avant d'importer app.config,
 # ce qui impose des imports apres du code (E402).
 "scripts/*.py" = ["E402"]
+
+# Le prompt systeme est du texte en francais, pas du code : le couper a 100
+# colonnes insererait des retours a la ligne dans ce qui est envoye au modele.
+"backend/app/rag/prompt.py" = ["E501"]

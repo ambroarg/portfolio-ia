@@ -28,6 +28,10 @@ def search(
         collection_name=settings.qdrant_collection,
         query=vector,
         limit=k or settings.top_k,
+        # Plancher de pertinence : une question sans rapport avec le CV ne
+        # remonte rien, donc main.py repond NO_CONTEXT_ANSWER sans solliciter
+        # le LLM. Qdrant applique le filtre, on ne paie pas la generation.
+        score_threshold=settings.min_score,
         with_payload=True,
     )
     return [

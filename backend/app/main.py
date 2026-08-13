@@ -20,12 +20,14 @@ app = FastAPI(
     description="Chat RAG repondant aux questions de recruteurs sur Ambroise Arrigoni.",
 )
 
-# A restreindre au domaine du portfolio avant la mise en production.
+# Liste blanche explicite (voir ALLOWED_ORIGINS dans .env). Un "*" laisserait
+# n'importe quel site declencher des generations sur ce serveur depuis le
+# navigateur de ses visiteurs.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=get_settings().cors_origins,
     allow_methods=["POST", "GET"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type"],
 )
 
 
