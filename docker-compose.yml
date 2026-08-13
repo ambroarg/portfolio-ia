@@ -1,0 +1,53 @@
+services:
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      # .env pointe sur localhost:11434, ce qui designerait le conteneur
+      # lui-meme. On vise donc Ollama installe sur la machine hote.
+      #
+      # Le nom DOCKER_OLLAMA_URL est volontairement different : Compose lit
+      # .env pour interpoler les ${...}, donc ecrire ${OLLAMA_BASE_URL:-...}
+      # recupererait la valeur de .env et la valeur par defaut ne servirait
+      # jamais. Avec le profil "ollama", poser DOCKER_OLLAMA_URL=http://ollama:11434
+      OLLAMA_BASE_URL: ${DOCKER_OLLAMA_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      # Docker Desktop resout host.docker.internal tout seul ; sous Linux non.
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      # 8080 est occupe par un tunnel SSH sur cette machine. 5500 est aussi le
+      # port du serveur statique de dev : une seule URL a retenir.
+      # Surchargeable : FRONTEND_PORT=9000 docker compose up
+      - "${FRONTEND_PORT:-5500}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Optionnel : Ollama en conteneur, pour le deploiement sur un serveur Linux
+  # ou aucune instance n'est installee.
+  #   docker compose --profile ollama up
+  #   docker compose --profile ollama exec ollama ollama pull bge-m3
+  #   docker compose --profile ollama exec ollama ollama pull llama3.2:3b
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+
+volumes:
+  ollama-models:

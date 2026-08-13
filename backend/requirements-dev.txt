@@ -1,0 +1,7 @@
+# Outillage local : ingestion du CV, lint et tests.
+# Ces paquets n'entrent pas dans l'image Docker de l'API.
+-r requirements.txt
+
+pypdf
+ruff
+pytest

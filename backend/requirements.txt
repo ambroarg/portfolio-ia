@@ -3,6 +3,3 @@ uvicorn[standard]
 qdrant-client
 ollama
 pydantic-settings
-pypdf
-ruff
-pytest
