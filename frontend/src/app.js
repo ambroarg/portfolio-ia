@@ -18,6 +18,9 @@ const el = {
   stop: document.getElementById("stop"),
   status: document.getElementById("status"),
   statusLabel: document.getElementById("status-label"),
+  avatar: document.getElementById("avatar"),
+  avatarImg: document.getElementById("avatar-img"),
+  privacy: document.getElementById("privacy"),
 };
 
 let controller = null;
@@ -67,6 +70,9 @@ function addUserMessage(text) {
 
 function addBotMessage() {
   const msg = node("div", "msg msg-bot");
+
+  // Rappel permanent de la nature de l'interlocuteur, sur chaque reponse.
+  msg.appendChild(node("div", "msg-label", "Assistant IA"));
 
   const phase = node("div", "phase");
   phase.appendChild(node("span", "phase-spinner"));
@@ -263,6 +269,28 @@ el.suggestions.addEventListener("click", (event) => {
 });
 
 el.stop.addEventListener("click", () => controller?.abort());
+
+/* ---------- avatar ---------- */
+
+// Tant que frontend/src/assets/avatar.jpg n'existe pas, on retombe sur les
+// initiales plutot que d'afficher l'icone d'image cassee du navigateur.
+if (el.avatarImg.complete && el.avatarImg.naturalWidth === 0) {
+  el.avatar.dataset.fallback = "true";
+}
+el.avatarImg.addEventListener("error", () => {
+  el.avatar.dataset.fallback = "true";
+});
+
+/* ---------- confidentialite ---------- */
+
+for (const id of ["open-privacy", "open-privacy-footer"]) {
+  document.getElementById(id)?.addEventListener("click", () => el.privacy.showModal());
+}
+
+// Clic sur le fond translucide : fermeture, comme une feuille iOS.
+el.privacy.addEventListener("click", (event) => {
+  if (event.target === el.privacy) el.privacy.close();
+});
 
 checkHealth();
 el.input.focus();
